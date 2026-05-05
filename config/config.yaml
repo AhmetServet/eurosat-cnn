@@ -1,0 +1,58 @@
+# EuroSAT CNN — Central Configuration
+# =====================================
+
+# Paths
+dataset:
+  root: "dataset"
+  label_map: "dataset/label_map.json"
+
+splits:
+  dir: "splits"
+  train: "splits/train.csv"
+  val: "splits/val.csv"
+  test: "splits/test.csv"
+  # Stratified split ratios (must sum to 1.0)
+  ratios:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  random_seed: 42
+
+# Output directories
+outputs:
+  eda: "outputs/eda"
+  checkpoints: "outputs/checkpoints"
+  metrics: "outputs/metrics"
+  plots: "outputs/plots"
+  report: "outputs/report"
+
+logs:
+  dir: "logs"
+
+# Training hyperparameters
+training:
+  batch_size: 64
+  epochs: 30
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  num_workers: 4
+  pin_memory: true
+  # Early stopping
+  early_stopping_patience: 5
+  # Learning rate scheduler
+  scheduler_factor: 0.5
+  scheduler_patience: 3
+  # Dropout in classification head
+  dropout: 0.3
+
+# Model
+model:
+  input_size: 224  # resize 64×64 to 224×224 for pretrained backbones
+  num_classes: 10
+  freeze_backbone: true
+  # Classification head hidden dimension
+  head_hidden_dim: 512
+
+# Reproducibility
+reproducibility:
+  seed: 42

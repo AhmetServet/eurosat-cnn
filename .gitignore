@@ -12,3 +12,6 @@ wheels/
 .DS_Store
 
 dataset/
+splits/
+outputs/
+logs/
