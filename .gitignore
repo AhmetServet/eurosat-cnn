@@ -11,7 +11,7 @@ wheels/
 
 .DS_Store
 
-dataset/
+dataset/*/
 splits/
 outputs/
 logs/
