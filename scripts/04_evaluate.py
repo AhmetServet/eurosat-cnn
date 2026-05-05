@@ -92,7 +92,7 @@ def main():
 
         model = create_model(
             name, num_classes=num_classes,
-            dropout=cfg["model"]["dropout"],
+            dropout=cfg["training"]["dropout"],
             hidden_dim=cfg["model"]["head_hidden_dim"],
             freeze_backbone=cfg["model"]["freeze_backbone"],
         )
