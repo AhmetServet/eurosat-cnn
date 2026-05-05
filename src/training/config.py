@@ -18,6 +18,7 @@ class TrainingConfig:
     dropout: float = 0.3
     head_hidden_dim: int = 512
     freeze_backbone: bool = True
+    compile_model: bool = False
     device: str = "cpu"
 
     @classmethod
@@ -40,6 +41,7 @@ class TrainingConfig:
             dropout=t.get("dropout", 0.3),
             head_hidden_dim=m.get("head_hidden_dim", 512),
             freeze_backbone=(phase == "phase1"),
+            compile_model=t.get("compile", False),
             device=device,
         )
 

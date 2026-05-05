@@ -117,6 +117,9 @@ def main():
             train_csv=cfg["splits"]["train"],
             resume=not args.no_resume,
         )
+        del model
+        if device == "cuda":
+            torch.cuda.empty_cache()
 
     if not fine_tune:
         print("\nAll training complete. (Phase 1 only)")
@@ -126,6 +129,9 @@ def main():
     phase2_cfg = TrainingConfig.phase2_config(cfg, device)
     if phase2_cfg is None:
         return
+
+    if device == "cuda":
+        torch.cuda.empty_cache()
 
     for name in model_names:
         phase1_best = checkpoint_dir / f"{name}_best.pt"
@@ -160,6 +166,9 @@ def main():
             train_csv=cfg["splits"]["train"],
             resume=not args.no_resume,
         )
+        del model
+        if device == "cuda":
+            torch.cuda.empty_cache()
 
     print("\nAll training complete. (Phase 1 + Phase 2)")
 

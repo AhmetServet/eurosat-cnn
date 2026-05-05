@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
@@ -22,12 +22,13 @@ def compute_class_weights(train_csv: str, num_classes: int) -> torch.Tensor:
     return torch.tensor(weights / weights.sum() * num_classes, dtype=torch.float32)
 
 
-def _compile_model(model: nn.Module, device: torch.device) -> nn.Module:
+def _compile_model(model: nn.Module, device: torch.device, enabled: bool) -> nn.Module:
+    if not enabled:
+        return model
+    # CUDA inductor is unsafe with depthwise convs + large batches
+    # (canUse32BitIndexMath errors on MobileNet/EfficientNet)
     if device.type == "cuda":
-        try:
-            return torch.compile(model)
-        except Exception:
-            return model
+        return model
     elif device.type == "mps":
         try:
             return torch.compile(model, backend="aot_eager")
@@ -96,7 +97,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device, use_amp: bool, 
         optimizer.zero_grad()
 
         if use_amp:
-            with autocast():
+            with autocast(device_type="cuda"):
                 outputs = model(images)
                 loss = criterion(outputs, labels)
             scaler.scale(loss).backward()
@@ -185,11 +186,11 @@ def train_model(
         print("  No checkpoint found — training from scratch")
 
     # Compile after loading (so saved state_dicts stay clean / device-agnostic)
-    model = _compile_model(model, device)
+    model = _compile_model(model, device, getattr(config, "compile_model", False))
 
     print(f"\n{'='*60}")
     print(f"Training {model_name} | device={device} | epochs={config.epochs}")
-    print(f"  AMP={'on' if use_amp else 'off'} | batch_size={config.batch_size} | compile=True")
+    print(f"  AMP={'on' if use_amp else 'off'} | batch_size={config.batch_size} | compile={getattr(config, 'compile_model', False)}")
     print(f"{'='*60}")
 
     for epoch in range(start_epoch, config.epochs + 1):

@@ -54,6 +54,8 @@ training:
   scheduler_patience: 3
   # Dropout in classification head
   dropout: 0.3
+  # torch.compile (disable on CUDA — inductor crashes with depthwise convs + large batches)
+  compile: false
 
 # Model
 model:
