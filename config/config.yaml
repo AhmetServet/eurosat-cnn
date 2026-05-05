@@ -31,7 +31,7 @@ logs:
 
 # Training hyperparameters
 training:
-  batch_size: 64
+  batch_size: 128
   epochs: 30
   learning_rate: 1.0e-3
   weight_decay: 1.0e-4
