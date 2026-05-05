@@ -31,9 +31,19 @@ logs:
 
 # Training hyperparameters
 training:
-  batch_size: 128
-  epochs: 30
-  learning_rate: 1.0e-3
+  batch_size: 512     # large batch for GPU utilization (128 = ~4GB, 512 = ~16GB, 1024 = ~32GB)
+
+  # Phase 1: Train classifier head with frozen backbone
+  phase1:
+    epochs: 10
+    learning_rate: 1.0e-3
+
+  # Phase 2: Fine-tune full model (unfreeze backbone)
+  fine_tune: true
+  phase2:
+    epochs: 20
+    learning_rate: 1.0e-5
+
   weight_decay: 1.0e-4
   num_workers: 4
   pin_memory: true
@@ -49,7 +59,6 @@ training:
 model:
   input_size: 224  # resize 64×64 to 224×224 for pretrained backbones
   num_classes: 10
-  freeze_backbone: true
   # Classification head hidden dimension
   head_hidden_dim: 512
 

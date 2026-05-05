@@ -1,5 +1,9 @@
 """Training entry point.
 
+Two-phase training for large GPUs:
+  Phase 1 — frozen backbone, train classifier head (10 epochs, lr=1e-3)
+  Phase 2 — unfreeze backbone, fine-tune full model  (20 epochs, lr=1e-5)
+
 Usage:
     python scripts/03_train.py --model resnet50
     python scripts/03_train.py --all
@@ -18,7 +22,7 @@ import yaml
 
 from src.data.dataset import EurosatDataModule
 from src.data.transforms import get_train_transforms, get_val_transforms
-from src.models.factory import create_model, list_models
+from src.models.factory import create_model, list_models, unfreeze_backbone
 from src.training.config import TrainingConfig
 from src.training.trainer import train_model
 
@@ -41,13 +45,13 @@ def get_device() -> str:
     return "cpu"
 
 
-def print_system_info(device: str) -> None:
-    print(f"PyTorch: {torch.__version__} | Device: {device}")
+def print_system_info(device: str, cfg: dict) -> None:
+    bs = cfg["training"]["batch_size"]
+    print(f"PyTorch: {torch.__version__} | Device: {device} | Batch size: {bs}")
     if device == "cuda":
-        print(f"  GPU: {torch.cuda.get_device_name(0)}")
-        print(f"  VRAM: {torch.cuda.get_device_properties(0).total_mem / 1e9:.1f} GB")
-    elif device == "mps":
-        print("  GPU: Apple Silicon (MPS)")
+        gpu_name = torch.cuda.get_device_name(0)
+        vram = torch.cuda.get_device_properties(0).total_memory / 1e9
+        print(f"  GPU: {gpu_name} ({vram:.1f} GB VRAM)")
 
 
 def main():
@@ -57,6 +61,7 @@ def main():
     group.add_argument("--all", action="store_true", help="Train all 5 models")
     parser.add_argument("--config", type=str, default="config/config.yaml")
     parser.add_argument("--no-resume", action="store_true", help="Ignore checkpoint, start fresh")
+    parser.add_argument("--phase1-only", action="store_true", help="Skip fine-tuning phase")
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -64,11 +69,13 @@ def main():
 
     device = get_device()
     set_seed(cfg["reproducibility"]["seed"])
-    print_system_info(device)
+    print_system_info(device, cfg)
 
-    train_config = TrainingConfig.from_config_dict(cfg, device)
+    num_classes = cfg["model"]["num_classes"]
     input_size = cfg["model"]["input_size"]
+    fine_tune = cfg["training"].get("fine_tune", False) and not args.phase1_only
 
+    # Shared data module
     train_tf = get_train_transforms(input_size)
     val_tf = get_val_transforms(input_size)
     datamodule = EurosatDataModule(
@@ -86,27 +93,75 @@ def main():
             print(f"Unknown model: {name}. Available: {list_models()}")
             sys.exit(1)
 
-    print(f"Models to train: {model_names}\n")
+    print(f"Models to train: {model_names}")
+    if fine_tune:
+        print("Two-phase training: Phase 1 (frozen) → Phase 2 (fine-tune)")
+    print()
 
+    # ── Phase 1: Frozen backbone → train classifier head ──
+    phase1_cfg = TrainingConfig.from_config_dict(cfg, device, phase="phase1")
     for name in model_names:
         model = create_model(
             name,
-            num_classes=cfg["model"]["num_classes"],
-            dropout=train_config.dropout,
-            hidden_dim=train_config.head_hidden_dim,
-            freeze_backbone=train_config.freeze_backbone,
+            num_classes=num_classes,
+            dropout=phase1_cfg.dropout,
+            hidden_dim=phase1_cfg.head_hidden_dim,
+            freeze_backbone=True,
         )
         train_model(
             model=model,
             model_name=name,
             datamodule=datamodule,
-            config=train_config,
+            config=phase1_cfg,
             checkpoint_dir=checkpoint_dir,
             train_csv=cfg["splits"]["train"],
             resume=not args.no_resume,
         )
 
-    print("\nAll training complete.")
+    if not fine_tune:
+        print("\nAll training complete. (Phase 1 only)")
+        return
+
+    # ── Phase 2: Unfreeze → fine-tune entire model ──
+    phase2_cfg = TrainingConfig.phase2_config(cfg, device)
+    if phase2_cfg is None:
+        return
+
+    for name in model_names:
+        phase1_best = checkpoint_dir / f"{name}_best.pt"
+        if not phase1_best.exists():
+            print(f"\n[SKIP] {name} fine-tune — no Phase 1 checkpoint at {phase1_best}")
+            continue
+
+        print(f"\n{'='*60}")
+        print(f"Phase 2 — Fine-tuning {name}")
+        print(f"{'='*60}")
+
+        # Create unfrozen model and load Phase 1 weights
+        model = create_model(
+            name,
+            num_classes=num_classes,
+            dropout=phase2_cfg.dropout,
+            hidden_dim=phase2_cfg.head_hidden_dim,
+            freeze_backbone=False,
+        )
+        ckpt = torch.load(phase1_best, map_location=device, weights_only=True)
+        ckpt = {k.replace("_orig_mod.", ""): v for k, v in ckpt.items()}
+        model.load_state_dict(ckpt)
+        print(f"  Loaded Phase 1 weights from {phase1_best}")
+
+        # Fine-tune with full model
+        train_model(
+            model=model,
+            model_name=f"{name}_ft",
+            datamodule=datamodule,
+            config=phase2_cfg,
+            checkpoint_dir=checkpoint_dir,
+            train_csv=cfg["splits"]["train"],
+            resume=not args.no_resume,
+        )
+
+    print("\nAll training complete. (Phase 1 + Phase 2)")
 
 
 if __name__ == "__main__":

@@ -79,22 +79,28 @@ def main():
     summary = []
 
     for name in model_names:
-        best_path = checkpoint_dir / f"{name}_best.pt"
-        history_path = checkpoint_dir / f"{name}_history.json"
+        # Prefer fine-tuned checkpoint if available
+        ft_best_path = checkpoint_dir / f"{name}_ft_best.pt"
+        best_path = ft_best_path if ft_best_path.exists() else checkpoint_dir / f"{name}_best.pt"
+        history_path = checkpoint_dir / f"{name}_ft_history.json"
+        if not history_path.exists():
+            history_path = checkpoint_dir / f"{name}_history.json"
+
+        suffix = " (fine-tuned)" if ft_best_path.exists() else ""
 
         if not best_path.exists():
-            print(f"\n[SKIP] {name} — no checkpoint found at {best_path}")
+            print(f"\n[SKIP] {name} — no checkpoint found")
             continue
 
         print(f"\n{'='*60}")
-        print(f"Evaluating {name}")
+        print(f"Evaluating {name}{suffix}")
         print(f"{'='*60}")
 
         model = create_model(
             name, num_classes=num_classes,
             dropout=cfg["training"]["dropout"],
             hidden_dim=cfg["model"]["head_hidden_dim"],
-            freeze_backbone=cfg["model"]["freeze_backbone"],
+            freeze_backbone=False,  # we're loading full weights anyway
         )
 
         model = load_best_model(model, best_path, device)

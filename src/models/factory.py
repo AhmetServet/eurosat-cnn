@@ -30,6 +30,12 @@ def _freeze_backbone(model: nn.Module) -> None:
         param.requires_grad_(False)
 
 
+def unfreeze_backbone(model: nn.Module) -> None:
+    """Unfreeze all parameters for fine-tuning."""
+    for param in model.parameters():
+        param.requires_grad_(True)
+
+
 def create_vgg16_bn(num_classes: int = 10, dropout: float = 0.3, hidden_dim: int = 512, freeze_backbone: bool = True):
     model = models.vgg16_bn(weights=models.VGG16_BN_Weights.IMAGENET1K_V1)
     if freeze_backbone:
