@@ -10,8 +10,10 @@ Loads all trained models, evaluates on the test set, and produces:
 
 Usage:
     python scripts/04_evaluate.py
+    python scripts/04_evaluate.py --num-misclassifications 5
 """
 
+import argparse
 import json
 import sys
 import time
@@ -26,10 +28,12 @@ import yaml
 from src.data.dataset import EurosatDataModule
 from src.data.transforms import get_val_transforms
 from src.evaluation.metrics import (
+    collect_misclassifications,
     compute_metrics,
     load_best_model,
     plot_comparison,
     plot_confusion_matrix,
+    plot_misclassifications,
     plot_roc_curves,
     plot_training_history,
     predict,
@@ -47,6 +51,17 @@ def get_device() -> str:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Evaluate EuroSAT CNN models")
+    parser.add_argument(
+        "--num-misclassifications",
+        type=int,
+        default=5,
+        help="Number of high-confidence misclassifications to save per model",
+    )
+    args = parser.parse_args()
+    if args.num_misclassifications < 0:
+        parser.error("--num-misclassifications must be >= 0")
+
     set_style()
 
     with open("config/config.yaml") as f:
@@ -62,6 +77,7 @@ def main():
     )
     num_classes = len(class_names)
     input_size = cfg["model"]["input_size"]
+    test_df = pd.read_csv(cfg["splits"]["test"])
 
     val_tf = get_val_transforms(input_size)
     datamodule = EurosatDataModule(cfg, val_transforms=val_tf, pin_memory=(device_name == "cuda"))
@@ -124,6 +140,27 @@ def main():
 
         # ROC curves
         plot_roc_curves(y_true, y_probs, class_names, plots_dir / f"{name}_roc.png")
+
+        # Misclassification examples
+        misclassified = collect_misclassifications(
+            test_df=test_df,
+            y_true=y_true,
+            y_pred=y_pred,
+            y_probs=y_probs,
+            class_names=class_names,
+            limit=args.num_misclassifications,
+        )
+        misclassified_path = report_dir / f"{name}_misclassifications.csv"
+        misclassified.to_csv(misclassified_path, index=False)
+        if misclassified.empty:
+            print("  Misclassifications: none found; CSV saved, PNG skipped")
+        else:
+            misclassified_plot_path = plots_dir / f"{name}_misclassifications.png"
+            plot_misclassifications(misclassified, misclassified_plot_path)
+            print(
+                f"  Misclassifications: saved {len(misclassified)} examples "
+                f"to {misclassified_path} and {misclassified_plot_path}"
+            )
 
         # Training history
         if history_path.exists():

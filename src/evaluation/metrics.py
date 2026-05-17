@@ -5,11 +5,13 @@ and generates plots.
 """
 
 import json
+import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from PIL import Image
 import torch
 import torch.nn as nn
 from sklearn.metrics import (
@@ -95,6 +97,95 @@ def compute_metrics(y_true, y_pred, y_probs, class_names: list, num_classes: int
         "per_class": per_class,
         "auc_per_class": auc_scores,
     }
+
+
+# ---------------------------------------------------------------------------
+# Misclassification examples
+# ---------------------------------------------------------------------------
+
+MISCLASSIFICATION_COLUMNS = [
+    "test_index",
+    "filename",
+    "true_label",
+    "true_class",
+    "pred_label",
+    "pred_class",
+    "pred_confidence",
+    "true_class_probability",
+    "top3_classes",
+    "top3_probabilities",
+]
+
+
+def collect_misclassifications(
+    test_df: pd.DataFrame,
+    y_true,
+    y_pred,
+    y_probs,
+    class_names: list,
+    limit: int = 5,
+) -> pd.DataFrame:
+    """Return highest-confidence wrong predictions with test-set metadata."""
+    rows = []
+    wrong_indices = np.flatnonzero(y_true != y_pred)
+
+    for idx in wrong_indices:
+        true_label = int(y_true[idx])
+        pred_label = int(y_pred[idx])
+        probs = y_probs[idx]
+        top3 = np.argsort(probs)[-3:][::-1]
+
+        rows.append(
+            {
+                "test_index": int(test_df.iloc[idx].get("index", idx)),
+                "filename": test_df.iloc[idx]["filename"],
+                "true_label": true_label,
+                "true_class": class_names[true_label],
+                "pred_label": pred_label,
+                "pred_class": class_names[pred_label],
+                "pred_confidence": round(float(probs[pred_label]), 6),
+                "true_class_probability": round(float(probs[true_label]), 6),
+                "top3_classes": ";".join(class_names[int(i)] for i in top3),
+                "top3_probabilities": ";".join(f"{float(probs[int(i)]):.6f}" for i in top3),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame(columns=MISCLASSIFICATION_COLUMNS)
+
+    df = pd.DataFrame(rows, columns=MISCLASSIFICATION_COLUMNS)
+    df = df.sort_values("pred_confidence", ascending=False)
+    return df.head(limit).reset_index(drop=True)
+
+
+def plot_misclassifications(misclassified_df: pd.DataFrame, out_path: Path) -> None:
+    """Plot original image files for selected misclassifications."""
+    if misclassified_df.empty:
+        return
+
+    n_items = len(misclassified_df)
+    n_cols = min(5, n_items)
+    n_rows = math.ceil(n_items / n_cols)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(3.0 * n_cols, 3.6 * n_rows))
+    axes = np.atleast_1d(axes).reshape(-1)
+
+    for ax in axes[n_items:]:
+        ax.axis("off")
+
+    for ax, row in zip(axes, misclassified_df.itertuples(index=False)):
+        image = Image.open(row.filename).convert("RGB")
+        ax.imshow(image)
+        ax.axis("off")
+        title = (
+            f"{row.true_class} -> {row.pred_class}\n"
+            f"conf={row.pred_confidence:.3f}\n"
+            f"{Path(row.filename).stem}"
+        )
+        ax.set_title(title, fontsize=8)
+
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
