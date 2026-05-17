@@ -1,0 +1,6 @@
+test_index,filename,true_label,true_class,pred_label,pred_class,pred_confidence,true_class_probability,top3_classes,top3_probabilities
+2983,dataset/AnnualCrop/AnnualCrop_722.jpg,0,AnnualCrop,6,PermanentCrop,0.999982,1.3e-05,PermanentCrop;AnnualCrop;Industrial,0.999982;0.000013;0.000005
+2654,dataset/AnnualCrop/AnnualCrop_1961.jpg,0,AnnualCrop,6,PermanentCrop,0.99996,4e-05,PermanentCrop;AnnualCrop;Industrial,0.999960;0.000040;0.000000
+3000,dataset/AnnualCrop/AnnualCrop_397.jpg,0,AnnualCrop,6,PermanentCrop,0.999123,0.000839,PermanentCrop;AnnualCrop;Industrial,0.999123;0.000839;0.000019
+849,dataset/AnnualCrop/AnnualCrop_373.jpg,0,AnnualCrop,6,PermanentCrop,0.998193,0.001805,PermanentCrop;AnnualCrop;Industrial,0.998193;0.001805;0.000002
+3383,dataset/AnnualCrop/AnnualCrop_1534.jpg,0,AnnualCrop,6,PermanentCrop,0.998131,0.001869,PermanentCrop;AnnualCrop;Industrial,0.998131;0.001869;0.000000

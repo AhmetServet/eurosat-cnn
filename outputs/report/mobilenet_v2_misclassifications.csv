@@ -1,0 +1,6 @@
+test_index,filename,true_label,true_class,pred_label,pred_class,pred_confidence,true_class_probability,top3_classes,top3_probabilities
+2883,dataset/River/River_876.jpg,8,River,3,Highway,0.997898,0.002093,Highway;River;AnnualCrop,0.997898;0.002093;0.000006
+722,dataset/HerbaceousVegetation/HerbaceousVegetation_2664.jpg,2,HerbaceousVegetation,3,Highway,0.9948,0.002371,Highway;HerbaceousVegetation;River,0.994800;0.002371;0.002167
+3383,dataset/AnnualCrop/AnnualCrop_1534.jpg,0,AnnualCrop,6,PermanentCrop,0.993386,0.006588,PermanentCrop;AnnualCrop;HerbaceousVegetation,0.993386;0.006588;0.000009
+302,dataset/Pasture/Pasture_1820.jpg,5,Pasture,0,AnnualCrop,0.992179,0.003394,AnnualCrop;Pasture;River,0.992179;0.003394;0.001444
+2080,dataset/River/River_426.jpg,8,River,1,Forest,0.990847,0.002089,Forest;HerbaceousVegetation;River,0.990847;0.003691;0.002089

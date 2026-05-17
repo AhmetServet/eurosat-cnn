@@ -13,5 +13,6 @@ wheels/
 
 dataset/*/
 splits/
-outputs/
+outputs/.DS_Store
+outputs/checkpoints/
 logs/

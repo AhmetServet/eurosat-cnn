@@ -1,0 +1,74 @@
+{
+  "accuracy": 0.9526,
+  "precision_macro": 0.9523,
+  "recall_macro": 0.9509,
+  "f1_macro": 0.9511,
+  "auc_macro": 0.9986,
+  "per_class": {
+    "AnnualCrop": {
+      "precision": 0.9405,
+      "recall": 0.9489,
+      "f1": 0.9447
+    },
+    "Forest": {
+      "precision": 0.9591,
+      "recall": 0.9911,
+      "f1": 0.9749
+    },
+    "HerbaceousVegetation": {
+      "precision": 0.9632,
+      "recall": 0.8733,
+      "f1": 0.9161
+    },
+    "Highway": {
+      "precision": 0.9349,
+      "recall": 0.9573,
+      "f1": 0.946
+    },
+    "Industrial": {
+      "precision": 0.9762,
+      "recall": 0.984,
+      "f1": 0.9801
+    },
+    "Pasture": {
+      "precision": 0.9576,
+      "recall": 0.9033,
+      "f1": 0.9297
+    },
+    "PermanentCrop": {
+      "precision": 0.9041,
+      "recall": 0.9307,
+      "f1": 0.9172
+    },
+    "Residential": {
+      "precision": 0.9738,
+      "recall": 0.9911,
+      "f1": 0.9824
+    },
+    "River": {
+      "precision": 0.9537,
+      "recall": 0.9333,
+      "f1": 0.9434
+    },
+    "SeaLake": {
+      "precision": 0.9593,
+      "recall": 0.9956,
+      "f1": 0.9771
+    }
+  },
+  "auc_per_class": {
+    "AnnualCrop": 0.9979,
+    "Forest": 0.9998,
+    "HerbaceousVegetation": 0.998,
+    "Highway": 0.9984,
+    "Industrial": 0.9998,
+    "Pasture": 0.998,
+    "PermanentCrop": 0.9966,
+    "Residential": 0.9999,
+    "River": 0.998,
+    "SeaLake": 0.9999
+  },
+  "inference_ms_per_image": 27.97,
+  "total_params": 2884874,
+  "trainable_params": 2884874
+}
